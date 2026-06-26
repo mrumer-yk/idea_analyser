@@ -1,5 +1,7 @@
 // Thin client over the backend API.
 //
+import { getClientId } from './lib/clientId'
+//
 // In dev, VITE_API_BASE is unset, so requests go to relative `/api/...` and the
 // Vite proxy (vite.config.js) forwards them to the local FastAPI server.
 // In production (e.g. frontend on Vercel), set VITE_API_BASE at build time to
@@ -11,10 +13,15 @@ const API_BASE = (
   (isLocalHost ? '' : DEFAULT_PROD_API_BASE)
 ).replace(/\/$/, '')
 
+// Identify this browser on every request so history is scoped to it.
+function authHeaders(extra) {
+  return { 'X-Client-Id': getClientId(), ...(extra || {}) }
+}
+
 export async function createRun(payload) {
   const res = await fetch(`${API_BASE}/api/runs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error((await res.json()).detail || 'failed to start run')
@@ -22,18 +29,18 @@ export async function createRun(payload) {
 }
 
 export async function getRun(runId) {
-  const res = await fetch(`${API_BASE}/api/runs/${runId}`)
+  const res = await fetch(`${API_BASE}/api/runs/${runId}`, { headers: authHeaders() })
   if (!res.ok) throw new Error('run not found')
   return res.json()
 }
 
 export async function listRuns() {
-  const res = await fetch(`${API_BASE}/api/runs`)
+  const res = await fetch(`${API_BASE}/api/runs`, { headers: authHeaders() })
   return res.json()
 }
 
 export async function deleteRun(runId) {
-  const res = await fetch(`${API_BASE}/api/runs/${runId}`, { method: 'DELETE' })
+  const res = await fetch(`${API_BASE}/api/runs/${runId}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) throw new Error('failed to delete run')
   return res.json()
 }
@@ -41,7 +48,7 @@ export async function deleteRun(runId) {
 // Subscribe to the SSE progress stream. Returns the EventSource so the caller
 // can close it. onEvent(event) fires per agent event; onEnd() when finished.
 export function streamRun(runId, onEvent, onEnd) {
-  const es = new EventSource(`${API_BASE}/api/runs/${runId}/stream`)
+  const es = new EventSource(`${API_BASE}/api/runs/${runId}/stream?client_id=${encodeURIComponent(getClientId())}`)
   es.onmessage = (e) => {
     const data = JSON.parse(e.data)
     if (data.phase === '__end__') {

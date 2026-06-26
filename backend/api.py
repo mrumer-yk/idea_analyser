@@ -5,7 +5,7 @@ import json
 import uuid
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, model_validator
 
@@ -13,6 +13,17 @@ from . import repository, runner
 from .config import get_settings
 
 router = APIRouter()
+
+
+def _owned_run_or_404(run_id: str, client_id: str | None) -> dict:
+    """Fetch a run, returning 404 unless it belongs to this browser.
+
+    Using 404 (not 403) avoids revealing that someone else's run exists.
+    """
+    run = repository.get_run(run_id)
+    if not run or run.get("client_id") != client_id:
+        raise HTTPException(404, "run not found")
+    return run
 
 
 class CreateRun(BaseModel):
@@ -30,24 +41,27 @@ class CreateRun(BaseModel):
 
 
 @router.post("/runs")
-async def create_run(body: CreateRun):
+async def create_run(
+    body: CreateRun,
+    x_client_id: str | None = Header(None, alias="X-Client-Id"),
+):
     run_id = uuid.uuid4().hex
     provider = get_settings().llm_provider
-    repository.create_run(run_id, body.input_type, body.raw_input, body.source_url, provider)
+    repository.create_run(
+        run_id, body.input_type, body.raw_input, body.source_url, provider, x_client_id
+    )
     runner.launch(run_id, body.input_type, body.raw_input, body.source_url)
     return {"run_id": run_id}
 
 
 @router.get("/runs")
-async def list_runs():
-    return {"runs": repository.list_runs()}
+async def list_runs(x_client_id: str | None = Header(None, alias="X-Client-Id")):
+    return {"runs": repository.list_runs(x_client_id)}
 
 
 @router.get("/runs/{run_id}")
-async def get_run(run_id: str):
-    run = repository.get_run(run_id)
-    if not run:
-        raise HTTPException(404, "run not found")
+async def get_run(run_id: str, x_client_id: str | None = Header(None, alias="X-Client-Id")):
+    run = _owned_run_or_404(run_id, x_client_id)
     report = repository.get_report(run_id)
     return {
         "run": run,
@@ -60,15 +74,15 @@ async def get_run(run_id: str):
 
 
 @router.delete("/runs/{run_id}")
-async def delete_run(run_id: str):
-    if not repository.get_run(run_id):
-        raise HTTPException(404, "run not found")
+async def delete_run(run_id: str, x_client_id: str | None = Header(None, alias="X-Client-Id")):
+    _owned_run_or_404(run_id, x_client_id)
     repository.delete_run(run_id)
     return {"ok": True}
 
 
 @router.get("/runs/{run_id}/report.json")
-async def get_report_json(run_id: str):
+async def get_report_json(run_id: str, x_client_id: str | None = Header(None, alias="X-Client-Id")):
+    _owned_run_or_404(run_id, x_client_id)
     report = repository.get_report(run_id)
     if not report or not report["report_json"]:
         raise HTTPException(404, "report not ready")
@@ -80,9 +94,13 @@ def _sse(event: dict) -> str:
 
 
 @router.get("/runs/{run_id}/stream")
-async def stream(run_id: str):
-    if not repository.get_run(run_id):
-        raise HTTPException(404, "run not found")
+async def stream(
+    run_id: str,
+    # EventSource can't set headers, so the browser passes the id as a query param.
+    client_id: str | None = Query(None),
+    x_client_id: str | None = Header(None, alias="X-Client-Id"),
+):
+    _owned_run_or_404(run_id, x_client_id or client_id)
 
     async def gen():
         q = runner.subscribe(run_id)

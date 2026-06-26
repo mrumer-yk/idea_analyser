@@ -13,12 +13,13 @@ def _now() -> str:
 
 # ── runs ──────────────────────────────────────────────────────────
 def create_run(run_id: str, input_type: str, raw_input: str | None,
-               source_url: str | None, provider: str) -> None:
+               source_url: str | None, provider: str,
+               client_id: str | None = None) -> None:
     with connect() as conn:
         conn.execute(
-            "INSERT INTO runs (id, created_at, input_type, raw_input, source_url, status, provider)"
-            " VALUES (?, ?, ?, ?, ?, 'queued', ?)",
-            (run_id, _now(), input_type, raw_input, source_url, provider),
+            "INSERT INTO runs (id, created_at, input_type, raw_input, source_url, status, provider, client_id)"
+            " VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)",
+            (run_id, _now(), input_type, raw_input, source_url, provider, client_id),
         )
 
 
@@ -42,13 +43,17 @@ def delete_run(run_id: str) -> None:
         conn.execute("DELETE FROM runs WHERE id=?", (run_id,))
 
 
-def list_runs(limit: int = 50) -> list[dict]:
+def list_runs(client_id: str | None, limit: int = 50) -> list[dict]:
+    """History for one anonymous browser. A missing client_id returns nothing
+    (rather than leaking the global list)."""
+    if not client_id:
+        return []
     with connect() as conn:
         rows = conn.execute(
             "SELECT id, created_at, input_type, raw_input, source_url, status, "
             "(SELECT recommendation FROM reports WHERE reports.run_id = runs.id) AS recommendation "
-            "FROM runs ORDER BY created_at DESC LIMIT ?",
-            (limit,),
+            "FROM runs WHERE client_id=? ORDER BY created_at DESC LIMIT ?",
+            (client_id, limit),
         ).fetchall()
         return [dict(r) for r in rows]
 

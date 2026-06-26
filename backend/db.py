@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS runs (
     source_url  TEXT,
     status      TEXT NOT NULL,            -- queued | running | done | error
     provider    TEXT,
-    error       TEXT
+    error       TEXT,
+    client_id   TEXT                      -- anonymous per-browser owner (localStorage id)
 );
 
 CREATE TABLE IF NOT EXISTS run_events (
@@ -67,6 +68,19 @@ def init_db() -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Idempotent schema upgrades for databases created before a column existed.
+
+    Runs after the base SCHEMA so the client_id index (which references a column
+    added here for pre-existing tables) is created only once the column exists.
+    """
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(runs)")}
+    if "client_id" not in cols:
+        conn.execute("ALTER TABLE runs ADD COLUMN client_id TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_runs_client ON runs(client_id, created_at)")
 
 
 @contextmanager

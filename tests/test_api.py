@@ -47,26 +47,42 @@ def test_post_run_creates_row(monkeypatch):
 
 
 def test_get_run_and_report_endpoints():
-    repository.create_run("r2", "text", "idea", None, "fake")
+    repository.create_run("r2", "text", "idea", None, "fake", "owner-a")
     repository.save_report(
         "r2", "# Report\nbody", {"recommendation": "pursue", "idea_summary": "x"},
         7.0, "pursue", "high",
     )
     repository.set_run_status("r2", "done")
+    hdr = {"X-Client-Id": "owner-a"}
     with TestClient(app) as client:
-        r = client.get("/api/runs/r2")
+        r = client.get("/api/runs/r2", headers=hdr)
         assert r.status_code == 200
         assert r.json()["report_json"]["recommendation"] == "pursue"
 
-        r = client.get("/api/runs/r2/report.json")
+        r = client.get("/api/runs/r2/report.json", headers=hdr)
         assert r.status_code == 200
         assert r.json()["recommendation"] == "pursue"
 
-        r = client.get("/api/runs/missing")
+        r = client.get("/api/runs/missing", headers=hdr)
         assert r.status_code == 404
 
-        r = client.get("/api/runs")
+        r = client.get("/api/runs", headers=hdr)
         assert any(run["id"] == "r2" for run in r.json()["runs"])
+
+
+def test_runs_are_scoped_per_client():
+    """A run created by one browser is invisible to another."""
+    repository.create_run("owned", "text", "idea", None, "fake", "owner-a")
+    a, b = {"X-Client-Id": "owner-a"}, {"X-Client-Id": "owner-b"}
+    with TestClient(app) as client:
+        # Owner sees it in history and can read it.
+        assert any(run["id"] == "owned" for run in client.get("/api/runs", headers=a).json()["runs"])
+        assert client.get("/api/runs/owned", headers=a).status_code == 200
+        # A different browser sees neither the listing nor the detail.
+        assert all(run["id"] != "owned" for run in client.get("/api/runs", headers=b).json()["runs"])
+        assert client.get("/api/runs/owned", headers=b).status_code == 404
+        # And cannot delete it.
+        assert client.delete("/api/runs/owned", headers=b).status_code == 404
 
 
 def test_delete_run_removes_everything():
