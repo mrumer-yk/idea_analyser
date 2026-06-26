@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+data/
+*.db
+.env
+web/
+tests/
+.pytest_cache/
+.pytest_tmp/
+.git/
+.gitignore
+README.md
+DEPLOY.md
