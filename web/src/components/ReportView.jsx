@@ -6,6 +6,8 @@ import Signals from './Signals'
 import Sources from './Sources'
 import Segments from './Segments'
 import RevenueGTM from './RevenueGTM'
+import DemandSignals from './DemandSignals'
+import Pivots from './Pivots'
 import FitBars from './charts/FitBars'
 import RiskHeatmap from './charts/RiskHeatmap'
 
@@ -43,9 +45,11 @@ export default function ReportView({ report, reportMd, runId, streaming }) {
       ['overview', 'Overview', true],
       ['segments', 'Segments', (report.target_segments || []).length || streaming],
       ['competitors', 'Competitors', (report.competitors || []).length || streaming],
+      ['demand', 'Demand', (report.demand_signals || []).length || streaming],
       ['market', 'Market', (report.market_signals || []).length || sized || streaming],
       ['money', 'Revenue', (report.revenue_models || []).length || streaming],
       ['risks', 'Risks', (report.risks || []).length || streaming],
+      ['pivots', 'Pivots', (report.pivots || []).length || streaming],
       ['sources', 'Sources', (report.sources || []).length],
     ]
     return items.filter(([, , show]) => show).map(([id, label]) => ({ id, label }))
@@ -125,6 +129,10 @@ export default function ReportView({ report, reportMd, runId, streaming }) {
           <CompetitorTable competitors={report.competitors} />
         </Section>
 
+        <Section id="demand" title="Demand Signals" streaming={streaming} empty={!(report.demand_signals || []).length}>
+          <DemandSignals signals={report.demand_signals} />
+        </Section>
+
         <Section id="market" title="Market Size & Signals" streaming={streaming} empty={!(report.market_signals || []).length && !sized}>
           <div className="text-xs uppercase tracking-wide text-zinc-600 mb-2">Market size (TAM / SAM / SOM)</div>
           <MarketSize marketSize={ms} sized={sized} />
@@ -142,6 +150,10 @@ export default function ReportView({ report, reportMd, runId, streaming }) {
 
         <Section id="risks" title="Risks, Blockers & Compliance" streaming={streaming} empty={!(report.risks || []).length}>
           <RiskHeatmap risks={report.risks} />
+        </Section>
+
+        <Section id="pivots" title="Pivot Options" streaming={streaming} empty={!(report.pivots || []).length}>
+          <Pivots pivots={report.pivots} />
         </Section>
 
         <Section id="sources" title="Sources" streaming={false} empty={!(report.sources || []).length}>

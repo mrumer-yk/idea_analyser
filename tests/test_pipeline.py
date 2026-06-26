@@ -38,9 +38,27 @@ async def test_pipeline_produces_full_report():
     for sig in report.market_signals:
         assert sig.classification in {"fact", "assumption", "hypothesis"}
 
+    # Competitor enrichment filled intel fields.
+    razor_c = [c for c in report.competitors if c.name == "Razorpay"]
+    assert razor_c and razor_c[0].funding and razor_c[0].founded == "2014"
+    assert razor_c[0].weakness
+
+    # Cross-validator tagged signals and corroborated the verified one.
+    razor = [s for s in report.market_signals if "Razorpay" in s.claim]
+    assert razor and razor[0].verification == "verified"
+    assert razor[0].corroborating_url  # independent second source
+
+    # New agents populate their sections.
+    assert len(report.demand_signals) == 2
+    assert report.demand_signals[0].sentiment in {"pain", "desire", "objection", "neutral"}
+    assert len(report.pivots) == 2
+    assert report.pivots[0].direction
+
     # Markdown renders.
     assert "# India Market Validation Report" in out["report_md"]
     assert "Final Recommendation" in out["report_md"]
+    assert "Demand Signals" in out["report_md"]
+    assert "Pivot Options" in out["report_md"]
 
 
 async def test_pipeline_enforces_evidence_discipline():

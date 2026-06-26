@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createRun, getRun, listRuns, streamRun } from './api'
+import { createRun, deleteRun, getRun, listRuns, streamRun } from './api'
 import IdeaForm from './components/IdeaForm'
 import ProgressPanel from './components/ProgressPanel'
 import ReportView from './components/ReportView'
@@ -93,6 +93,20 @@ export default function App() {
         setError(e.message)
       }
     }
+  }
+
+  const removeRun = async (id) => {
+    try {
+      await deleteRun(id)
+    } catch (e) {
+      setError(e.message)
+      return
+    }
+    // tear down any live stream + local state for this run
+    if (streamsRef.current[id]) { streamsRef.current[id].close(); delete streamsRef.current[id] }
+    setRunsMap((prev) => { const next = { ...prev }; delete next[id]; return next })
+    if (runId === id) setRunId(null)
+    refreshHistory()
   }
 
   // Never blocked — just returns to a fresh, empty form. Running analyses keep
@@ -191,7 +205,7 @@ export default function App() {
             ＋ New analysis
           </button>
           <h2 className="text-sm font-semibold text-zinc-400 mb-2">History</h2>
-          <HistoryList runs={runs} activeId={runId} onSelect={openRun} />
+          <HistoryList runs={runs} activeId={runId} onSelect={openRun} onDelete={removeRun} />
         </aside>
       </div>
     </div>

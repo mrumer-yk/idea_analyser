@@ -37,6 +37,12 @@ def enforce_evidence_discipline(
             )
             sig.classification = "hypothesis"
 
+    # 1b. demand_signals: drop citations to URLs we never retrieved.
+    for sig in report.demand_signals:
+        if sig.source_url and sig.source_url not in evidence_urls:
+            violations.append(f"demand signal cites unseen URL: {sig.source_url!r}")
+            sig.source_url = None
+
     # 2. market_size: if it carries numbers it must be flagged grounded with
     #    stated assumptions; otherwise mark not grounded.
     ms = report.market_size

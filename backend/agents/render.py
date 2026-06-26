@@ -47,9 +47,17 @@ def render_markdown(report: Report) -> str:
     a("\n## Market Signals & Evidence")
     for sig in r.market_signals:
         src = f" — [source]({sig.source_url})" if sig.source_url else ""
-        a(f"- _({sig.classification})_ {sig.claim}{src}")
+        corr = f" + [2nd source]({sig.corroborating_url})" if sig.corroborating_url else ""
+        ver = f" `{sig.verification}`" if sig.verification and sig.verification != "unchecked" else ""
+        a(f"- _({sig.classification})_{ver} {sig.claim}{src}{corr}")
 
     ms = r.market_size
+    if r.demand_signals:
+        a("\n## Demand Signals (community)")
+        for d in r.demand_signals:
+            src = f" — [source]({d.source_url})" if d.source_url else ""
+            a(f"- _({d.sentiment})_ {d.observation}{src}")
+
     a("\n## Market Size (TAM / SAM / SOM)")
     a(f"- **TAM:** {ms.tam or 'n/a'}")
     a(f"- **SAM:** {ms.sam or 'n/a'}")
@@ -71,6 +79,15 @@ def render_markdown(report: Report) -> str:
     a("\n## Risks, Blockers & Compliance Concerns")
     for risk in r.risks:
         a(f"- _[{risk.type}/{risk.severity}]_ {risk.risk}")
+
+    if r.pivots:
+        a("\n## Pivot Options")
+        for p in r.pivots:
+            a(f"\n**{p.direction}**")
+            if p.rationale:
+                a(f"- Why: {p.rationale}")
+            if p.why_better:
+                a(f"- More winnable because: {p.why_better}")
 
     a(f"\n## Final Recommendation: **{r.recommendation.upper()}**")
     a(f"\n**Confidence:** {r.confidence}")

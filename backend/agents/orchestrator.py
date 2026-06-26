@@ -12,9 +12,13 @@ from ..schemas import Report
 from ..validators import enforce_evidence_discipline
 from .context import RunContext
 from .competitor import CompetitorAgent
+from .competitor_enrich import CompetitorEnrichAgent
+from .crossvalidator import CrossValidatorAgent
+from .demand import DemandSignalAgent
 from .fit import FitAgent
 from .intake import IntakeAgent
 from .monetization import MonetizationAgent
+from .pivot import PivotAgent
 from .redteam import RedTeamAgent
 from .render import render_markdown
 from .researcher import ResearcherAgent
@@ -26,12 +30,16 @@ from .synthesizer import SynthesizerAgent
 PIPELINE = [
     IntakeAgent,
     ResearcherAgent,
+    DemandSignalAgent,
     CompetitorAgent,
+    CompetitorEnrichAgent,
     SegmentationAgent,
     SizingAgent,
+    CrossValidatorAgent,
     MonetizationAgent,
     FitAgent,
     RedTeamAgent,
+    PivotAgent,
 ]
 
 
@@ -42,7 +50,12 @@ def _fragment(name: str, state: dict) -> dict:
         return {"idea_summary": (s.get("intake") or {}).get("core_idea", "")}
     if name == "researcher":
         return {"market_signals": (s.get("research") or {}).get("findings", [])}
-    if name == "competitor":
+    if name == "crossvalidator":
+        sigs = (s.get("verification") or {}).get("signals")
+        return {"market_signals": sigs} if sigs else {}
+    if name == "demand":
+        return {"demand_signals": (s.get("demand") or {}).get("demand_signals", [])}
+    if name in ("competitor", "competitor_enrich"):
         return {"competitors": (s.get("competitors") or {}).get("competitors", [])}
     if name == "segmentation":
         return {"target_segments": (s.get("segmentation") or {}).get("segments", [])}
@@ -55,6 +68,8 @@ def _fragment(name: str, state: dict) -> dict:
         return {"india_market_fit": (s.get("fit") or {}).get("india_market_fit", {})}
     if name == "redteam":
         return {"risks": (s.get("redteam") or {}).get("risks", [])}
+    if name == "pivots":
+        return {"pivots": (s.get("pivots") or {}).get("pivots", [])}
     return {}
 
 

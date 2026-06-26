@@ -33,6 +33,40 @@ def _by_role(system: str) -> dict:
             ],
             "summary": "There is competition but room in the GST niche.",
         }
+    if "CROSS-VALIDATOR" in system:
+        return {
+            "signals": [
+                {"claim": "Razorpay charges 2% per transaction", "classification": "fact",
+                 "source_url": URL_PRICING, "verification": "verified", "corroborating_url": URL_NEWS},
+                {"claim": "India has 15 million freelancers", "classification": "hypothesis",
+                 "source_url": "https://fabricated.example.com/made-up",
+                 "verification": "unverified", "corroborating_url": None},
+                {"claim": "Demand is likely rising post-2020", "classification": "hypothesis",
+                 "source_url": None, "verification": "unverified", "corroborating_url": None},
+            ],
+            "summary": "One claim verified, others unverified.",
+        }
+    if "DEMAND-SIGNAL ANALYST" in system:
+        return {
+            "demand_signals": [
+                {"observation": "Freelancers complain GST filing eats hours every month",
+                 "theme": "GST burden", "sentiment": "pain", "source_url": URL_NEWS},
+                {"observation": "Users want auto-categorized UPI expenses",
+                 "theme": "automation", "sentiment": "desire", "source_url": None},
+            ],
+            "summary": "Moderate community evidence of GST pain.",
+        }
+    if "PIVOT STRATEGIST" in system:
+        return {
+            "pivots": [
+                {"direction": "Narrow to GST-registered freelancers only",
+                 "rationale": "WTP is highest where GST is mandatory",
+                 "why_better": "Sharper wedge, clearer willingness to pay"},
+                {"direction": "Bundle with a CA-partner channel",
+                 "rationale": "Distribution via CAs lowers CAC",
+                 "why_better": "Trusted India distribution"},
+            ]
+        }
     if "COMPETITOR ANALYST" in system:
         return {
             "competitors": [
@@ -42,6 +76,20 @@ def _by_role(system: str) -> dict:
                  "pricing": "", "url": "https://ghost.example.com/unseen"},
             ],
             "gaps": ["No GST-native freelancer tool"],
+        }
+    if "COMPETITIVE INTELLIGENCE" in system:
+        return {
+            "competitors": [
+                {"name": "Razorpay", "type": "indirect", "positioning": "payments",
+                 "pricing": "2%", "url": URL_PRICING,
+                 "funding": "Series F, $741M raised", "founded": "2014",
+                 "scale": "10M+ businesses", "rating": "4.3 (Play Store)",
+                 "weakness": "Not freelancer-bookkeeping focused"},
+                {"name": "Ghostco", "type": "direct", "positioning": "x", "pricing": "",
+                 "url": "https://ghost.example.com/unseen",
+                 "funding": "", "founded": "", "scale": "", "rating": "",
+                 "weakness": "Thin India presence"},
+            ]
         }
     if "CUSTOMER SEGMENTATION" in system:
         return {"segments": [{"segment": "Freelancers", "persona": "Riya, designer",

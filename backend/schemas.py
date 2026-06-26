@@ -53,6 +53,12 @@ class Competitor(BaseModel):
     positioning: str = ""
     pricing: str = ""
     url: str = ""
+    # enrichment (competitive intelligence)
+    funding: str = ""  # e.g. "Series B, $50M raised"
+    founded: str = ""  # founding year
+    scale: str = ""  # users / MAU / employees signal
+    rating: str = ""  # G2 / Play Store rating + review count
+    weakness: str = ""  # named weakness / exploitable gap
 
     @field_validator("type", mode="before")
     @classmethod
@@ -62,10 +68,15 @@ class Competitor(BaseModel):
         return "direct"
 
 
+Verification = Literal["verified", "unverified", "conflicting", "unchecked"]
+
+
 class MarketSignal(BaseModel):
     claim: str
     classification: Classification = "hypothesis"
     source_url: Optional[str] = None
+    verification: Verification = "unchecked"
+    corroborating_url: Optional[str] = None  # a second, independent source
 
     @field_validator("classification", mode="before")
     @classmethod
@@ -75,6 +86,16 @@ class MarketSignal(BaseModel):
             "assumption": "assumption", "assumptions": "assumption", "assumed": "assumption",
             "hypothesis": "hypothesis", "hypotheses": "hypothesis", "hypothetical": "hypothesis",
         }, "hypothesis")
+
+    @field_validator("verification", mode="before")
+    @classmethod
+    def _norm_ver(cls, v):
+        return _normalize(v, {
+            "verified": "verified", "confirmed": "verified", "corroborated": "verified",
+            "unverified": "unverified", "unconfirmed": "unverified", "single": "unverified", "weak": "unverified",
+            "conflicting": "conflicting", "contradicted": "conflicting", "disputed": "conflicting",
+            "unchecked": "unchecked",
+        }, "unchecked")
 
 
 class MarketSize(BaseModel):
@@ -123,6 +144,29 @@ class Source(BaseModel):
     source_type: str = "other"
 
 
+class DemandSignal(BaseModel):
+    observation: str  # a real pain point / demand signal from the community
+    theme: str = ""  # cluster this belongs to
+    sentiment: Literal["pain", "desire", "objection", "neutral"] = "pain"
+    source_url: Optional[str] = None
+
+    @field_validator("sentiment", mode="before")
+    @classmethod
+    def _norm(cls, v):
+        return _normalize(v, {
+            "pain": "pain", "painpoint": "pain", "problem": "pain", "frustration": "pain", "complaint": "pain",
+            "desire": "desire", "demand": "desire", "want": "desire", "request": "desire", "interest": "desire",
+            "objection": "objection", "concern": "objection", "skepticism": "objection", "doubt": "objection",
+            "neutral": "neutral",
+        }, "pain")
+
+
+class Pivot(BaseModel):
+    direction: str  # the concrete pivot, e.g. "Narrow to BFSI outbound only"
+    rationale: str = ""  # why pivot here given the evidence/risks
+    why_better: str = ""  # why this is more winnable than the original
+
+
 class Report(BaseModel):
     idea_summary: str = ""
     problem_and_pain: str = ""
@@ -130,10 +174,12 @@ class Report(BaseModel):
     target_segments: list[Segment] = Field(default_factory=list)
     competitors: list[Competitor] = Field(default_factory=list)
     market_signals: list[MarketSignal] = Field(default_factory=list)
+    demand_signals: list[DemandSignal] = Field(default_factory=list)
     market_size: MarketSize = Field(default_factory=MarketSize)
     revenue_models: list[RevenueModel] = Field(default_factory=list)
     gtm_channels: list[str] = Field(default_factory=list)
     risks: list[Risk] = Field(default_factory=list)
+    pivots: list[Pivot] = Field(default_factory=list)
     recommendation: Recommendation = "pivot"
     confidence: Confidence = "low"
     sources: list[Source] = Field(default_factory=list)

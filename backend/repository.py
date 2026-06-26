@@ -33,6 +33,15 @@ def get_run(run_id: str) -> dict | None:
         return dict(row) if row else None
 
 
+def delete_run(run_id: str) -> None:
+    """Delete a run and all of its child rows (events, evidence, report)."""
+    with connect() as conn:
+        conn.execute("DELETE FROM reports WHERE run_id=?", (run_id,))
+        conn.execute("DELETE FROM evidence WHERE run_id=?", (run_id,))
+        conn.execute("DELETE FROM run_events WHERE run_id=?", (run_id,))
+        conn.execute("DELETE FROM runs WHERE id=?", (run_id,))
+
+
 def list_runs(limit: int = 50) -> list[dict]:
     with connect() as conn:
         rows = conn.execute(

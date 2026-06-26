@@ -21,6 +21,12 @@ export async function listRuns() {
   return res.json()
 }
 
+export async function deleteRun(runId) {
+  const res = await fetch(`/api/runs/${runId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('failed to delete run')
+  return res.json()
+}
+
 // Subscribe to the SSE progress stream. Returns the EventSource so the caller
 // can close it. onEvent(event) fires per agent event; onEnd() when finished.
 export function streamRun(runId, onEvent, onEnd) {

@@ -59,6 +59,14 @@ async def get_run(run_id: str):
     }
 
 
+@router.delete("/runs/{run_id}")
+async def delete_run(run_id: str):
+    if not repository.get_run(run_id):
+        raise HTTPException(404, "run not found")
+    repository.delete_run(run_id)
+    return {"ok": True}
+
+
 @router.get("/runs/{run_id}/report.json")
 async def get_report_json(run_id: str):
     report = repository.get_report(run_id)

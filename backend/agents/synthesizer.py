@@ -45,8 +45,8 @@ class SynthesizerAgent(Agent):
             USER_TMPL.format(
                 ctx=context_block(
                     ctx.state,
-                    ["intake", "research", "competitors", "segmentation",
-                     "sizing", "monetization", "fit", "redteam"],
+                    ["intake", "research", "demand", "competitors", "segmentation",
+                     "sizing", "monetization", "fit", "redteam", "pivots"],
                 )
             ),
             max_tokens=1500,
@@ -61,11 +61,17 @@ class SynthesizerAgent(Agent):
                 "india_market_fit": (s.get("fit", {}) or {}).get("india_market_fit", {}),
                 "target_segments": _coerce_list((s.get("segmentation", {}) or {}).get("segments")),
                 "competitors": _coerce_list((s.get("competitors", {}) or {}).get("competitors")),
-                "market_signals": _coerce_list((s.get("research", {}) or {}).get("findings")),
+                # prefer cross-validated signals (carry verification) over raw findings
+                "market_signals": _coerce_list(
+                    (s.get("verification", {}) or {}).get("signals")
+                    or (s.get("research", {}) or {}).get("findings")
+                ),
+                "demand_signals": _coerce_list((s.get("demand", {}) or {}).get("demand_signals")),
                 "market_size": (s.get("sizing", {}) or {}).get("market_size", {}),
                 "revenue_models": _coerce_list((s.get("monetization", {}) or {}).get("revenue_models")),
                 "gtm_channels": _coerce_list((s.get("monetization", {}) or {}).get("gtm_channels")),
                 "risks": _coerce_list((s.get("redteam", {}) or {}).get("risks")),
+                "pivots": _coerce_list((s.get("pivots", {}) or {}).get("pivots")),
                 "recommendation": verdict.get("recommendation", "pivot"),
                 "confidence": verdict.get("confidence", "low"),
                 "sources": [

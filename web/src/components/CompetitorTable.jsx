@@ -74,14 +74,15 @@ export default function CompetitorTable({ competitors }) {
         ))}
       </div>
 
-      <div className="rounded-lg border border-zinc-800 overflow-hidden">
-        <table className="w-full text-sm border-collapse">
+      <div className="rounded-lg border border-zinc-800 overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm border-collapse min-w-[760px]">
           <thead>
             <tr className="bg-zinc-900 text-zinc-500 text-left text-xs uppercase tracking-wide">
               <th className="py-2.5 px-3 font-medium">Company</th>
               <th className="py-2.5 px-3 font-medium w-20">Type</th>
-              <th className="py-2.5 px-3 font-medium">Positioning</th>
-              <th className="py-2.5 px-3 font-medium w-40">Pricing</th>
+              <th className="py-2.5 px-3 font-medium">Positioning & gap</th>
+              <th className="py-2.5 px-3 font-medium w-36">Funding</th>
+              <th className="py-2.5 px-3 font-medium w-32">Pricing</th>
               <th className="py-2.5 px-3 font-medium w-12"></th>
             </tr>
           </thead>
@@ -93,9 +94,24 @@ export default function CompetitorTable({ competitors }) {
                     <Favicon url={c.url} name={c.name} />
                     <span className="text-zinc-100 font-medium">{c.name}</span>
                   </div>
+                  {(c.founded || c.rating || c.scale) && (
+                    <div className="text-[11px] text-zinc-500 mt-1 ml-7 flex flex-wrap gap-x-2">
+                      {c.founded && <span>est. {c.founded}</span>}
+                      {c.rating && <span>★ {c.rating}</span>}
+                      {c.scale && <span>{c.scale}</span>}
+                    </div>
+                  )}
                 </td>
                 <td className="py-3 px-3"><TypeBadge type={c.type} /></td>
-                <td className="py-3 px-3 text-zinc-300 leading-relaxed">{c.positioning}</td>
+                <td className="py-3 px-3 text-zinc-300 leading-relaxed">
+                  {c.positioning}
+                  {c.weakness && (
+                    <div className="text-xs text-red-300/70 mt-1">Gap: {c.weakness}</div>
+                  )}
+                </td>
+                <td className="py-3 px-3 text-zinc-300">
+                  {c.funding ? c.funding : <span className="text-zinc-600">—</span>}
+                </td>
                 <td className="py-3 px-3 text-zinc-300">
                   {c.pricing ? c.pricing : <span className="text-zinc-600">—</span>}
                 </td>

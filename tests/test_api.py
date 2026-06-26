@@ -69,6 +69,22 @@ def test_get_run_and_report_endpoints():
         assert any(run["id"] == "r2" for run in r.json()["runs"])
 
 
+def test_delete_run_removes_everything():
+    repository.create_run("rd", "text", "idea", None, "fake")
+    repository.add_event("rd", "intake", "started", "go", None)
+    repository.add_evidence_bulk("rd", [{"title": "t", "url": "http://x", "snippet": "s", "source_type": "other"}])
+    repository.save_report("rd", "md", {"recommendation": "pivot"}, 5.0, "pivot", "low")
+    with TestClient(app) as client:
+        assert client.delete("/api/runs/rd").status_code == 200
+        assert client.get("/api/runs/rd").status_code == 404
+        assert client.delete("/api/runs/missing").status_code == 404
+    # child rows gone too
+    assert repository.get_run("rd") is None
+    assert repository.list_events("rd") == []
+    assert repository.list_evidence("rd") == []
+    assert repository.get_report("rd") is None
+
+
 def test_sse_stream_replays_finished_run():
     repository.create_run("r3", "text", "idea", None, "fake")
     repository.add_event("r3", "intake", "started", "go", None)
