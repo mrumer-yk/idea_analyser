@@ -4,7 +4,12 @@
 // Vite proxy (vite.config.js) forwards them to the local FastAPI server.
 // In production (e.g. frontend on Vercel), set VITE_API_BASE at build time to
 // the deployed backend origin, e.g. https://idea-validator-api.onrender.com
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
+const DEFAULT_PROD_API_BASE = 'https://idea-analyser.onrender.com'
+const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+const API_BASE = (
+  import.meta.env.VITE_API_BASE ||
+  (isLocalHost ? '' : DEFAULT_PROD_API_BASE)
+).replace(/\/$/, '')
 
 export async function createRun(payload) {
   const res = await fetch(`${API_BASE}/api/runs`, {

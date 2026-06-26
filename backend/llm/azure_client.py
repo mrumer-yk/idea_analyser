@@ -39,11 +39,13 @@ class AzureFoundryClient:
             )
         self._deployment = deployment.strip()
         self._endpoint = endpoint.strip().strip('"').strip("'")
+        if "/openai/deployments/" in self._endpoint:
+            self._endpoint = self._endpoint.split("/openai/deployments/", 1)[0]
         self._api_key = api_key.strip()
-        self._api_version = api_version
+        self._api_version = (api_version or "2024-10-21").strip()
         self._client = None  # lazy
         ep = self._endpoint.lower()
-        self._use_v1 = "/openai/v1" in ep or "services.ai.azure.com" in ep
+        self._use_v1 = "/openai/v1" in ep
 
     def _ensure_client(self):
         if self._client is None:
